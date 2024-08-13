@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class JwtService {
+public class JwtServyice {
 
     private static final String SECRET_KEY = "your_secret_key_here";
 
