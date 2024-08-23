@@ -5,16 +5,21 @@ import com.ShoppingCart.cart.model.Product;
 import com.ShoppingCart.cart.service.ProductService;
 import com.ShoppingCart.cart.service.SessionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.EnableMBeanExport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
     private final ProductService productService;
+
+    private MessageSource messageSource;
 
     @Autowired
     public ProductController(ProductService productService) {
@@ -70,5 +75,13 @@ public class ProductController {
         return ResponseEntity.ok(cartItemsDTO);
     }
 
+    @GetMapping("/notfound")
+    public ResponseEntity<String> getProductNotFoundMessage(
+            @RequestHeader(name = "Accept-Language", required = false) Locale locale) {
+
+        String message = messageSource.getMessage("product.not.found", null, locale);
+
+        return ResponseEntity.ok(message);
+    }
 
 }
