@@ -1,45 +1,74 @@
 package com.ShoppingCart.cart.controller;
 
 import com.ShoppingCart.cart.dto.ProductDTO;
+import com.ShoppingCart.cart.model.Product;
 import com.ShoppingCart.cart.service.ProductService;
+import com.ShoppingCart.cart.service.SessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Locale;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
-
     private final ProductService productService;
 
     @Autowired
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
+    private SessionService sessionService = SessionService.getInstance();
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getProduct(@PathVariable Long id, @RequestHeader(name = "Accept-Language", required = false) Locale locale) {
-        ProductDTO productDTO = productService.getProductById(id, locale);
-        return ResponseEntity.ok(productDTO);
+    @PostMapping("/add")
+    public ResponseEntity<ProductDTO> addProduct(@RequestBody ProductDTO productDTO) {
+        Product product = productService.convertToEntity(productDTO);
+
+        Product savedProduct = productService.saveProduct(product);
+
+        return ResponseEntity.ok(productService.convertToDTO(savedProduct));
     }
 
-    @PostMapping
-    public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductDTO productDTO) {
-        ProductDTO savedProductDTO = productService.saveProduct(productDTO);
-        return ResponseEntity.ok(savedProductDTO);
-    }
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id){
+        productService.deleteProduct(id);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id, @RequestHeader(name = "Accept-Language", required = false) Locale locale) {
-        productService.deleteProductById(id, locale);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/default")
-    public ResponseEntity<ProductDTO> createDefaultProduct() {
-        ProductDTO defaultProductDTO = productService.createDefaultProduct();
-        return ResponseEntity.ok(defaultProductDTO);
+    @PostMapping("/session/new")
+    public ResponseEntity<Long> createNewSession() {
+        Long sessionId = sessionService.createNewSession();
+
+        return ResponseEntity.ok(sessionId);
     }
+
+    @PostMapping("session/{sessionId}/art/add/{productId}")
+    public ResponseEntity<Void> addToCart(@PathVariable Long sessionId, @PathVariable Long productId) {
+        Product product = productService.findProductById(productId);
+        if (product!= null) {
+            sessionService.getCartBySession(sessionId).addToCart(product);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/session/{sessionId}/cart/remove/{productId}")
+    public ResponseEntity<Void> removeFromCart(@PathVariable Long sessionId, @PathVariable Long productId) {
+        sessionService.getCartBySession(sessionId).removeFromCard(productId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/session/{sessionId}/cart")
+    public ResponseEntity<List<ProductDTO>> viewCart(@PathVariable Long sessionId) {
+        List<Product> cartItems = sessionService.getCartBySession(sessionId).getCartItems();
+        List<ProductDTO>cartItemsDTO = cartItems.stream().map(productService::convertToDTO).collect(Collectors.toList());
+
+        return ResponseEntity.ok(cartItemsDTO);
+    }
+
+
 }
